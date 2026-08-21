@@ -1,0 +1,187 @@
+\documentclass[12pt,letterpaper]{article}
+% Paquetes para el documento
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{graphicx} 
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{xcolor} % Paquete para manejar colores
+\usepackage{titlesec} % Para personalizar títulos
+\usepackage{setspace} % Para un mejor control del interlineado
+
+% Configuración de márgenes estándar
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=3cm}
+
+% --- DEFINICIÓN DE COLORES ---
+\definecolor{UCBlue}{RGB}{12, 53, 106}       % Azul institucional profundo (Títulos)
+\definecolor{UCSky}{RGB}{74, 144, 226}       % Azul claro para acentos (Subtítulos)
+
+% Configuración de listas personalizada para las preguntas
+\setlist[enumerate]{
+    topsep=8pt, 
+    itemsep=12pt, 
+    parsep=4pt, 
+    leftmargin=18pt,
+    label=\color{UCBlue}\bfseries\arabic*.
+}
+\setlist[itemize]{topsep=4pt, itemsep=4pt, parsep=2pt, leftmargin=18pt}
+
+\begin{document}
+\spacing{1.15} % Interlineado óptimo
+
+% =========================================================================
+% PORTADA (PÁGINA 1)
+% =========================================================================
+\thispagestyle{empty}
+
+\noindent
+\begin{minipage}[c]{0.18\textwidth}
+    \includegraphics[width=\textwidth]{Uc_logo.png} % Logo de la UC
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.60\textwidth}
+    \centering\small\bfseries\color{UCBlue}
+    UNIVERSIDAD DE CARABOBO\\
+    FACULTAD EXPERIMENTAL DE CIENCIAS Y TECNOLOGÍA\\
+    DEPARTAMENTO DE COMPUTACIÓN\\
+    ARQUITECTURA DEL COMPUTADOR
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.15\textwidth}
+    \includegraphics[width=\textwidth]{facyt.png} % Logo de FACYT
+\end{minipage}
+
+\vspace{0.4cm}
+{\color{UCBlue}\hrule height 1.5pt width \textwidth}
+
+\vfill
+
+% --- TÍTULO DE LA PRÁCTICA ---
+\begin{center}
+    {\large\textsf{\textbf{\color{UCSky}{PRÁCTICA DE LABORATORIO \#3}}}} \\[0.6cm]
+    {\LARGE\bfseries\color{UCBlue}{Manejo de Dispositivos de Entrada/Salida Mapeados en Memoria (Memory-Mapped I/O) en Ensamblador MIPS32}} \\
+\end{center}
+
+\vfill
+
+% --- SECCIÓN DE IDENTIFICACIÓN ---
+{\color{UCSky}\hrule height 0.5pt width \textwidth}
+\vspace{0.6cm}
+
+\noindent
+\begin{minipage}[t]{0.5\textwidth}
+    \textbf{\color{UCBlue}{Estudiantes:}} \\[0.2cm]
+    Nathaly Campos \textit{\small C.I. 32.460.314} \\
+    David Serrano \textit{\small C.I. 31.000.672}
+\end{minipage}
+\begin{minipage}[t]{0.49\textwidth}
+    \raggedleft
+    \textbf{\color{UCBlue}{Profesor:}} \\[0.2cm]
+    José Canache
+\end{minipage}
+
+\newpage
+\pagenumbering{arabic}
+
+% =========================================================================
+% DESARROLLO DEL INFORME 
+% =========================================================================
+
+\begin{enumerate}
+
+    % --- PREGUNTA 1 ---
+    \item \textbf{\large\color{UCBlue}Explique cómo se organiza la memoria cuando un sistema utiliza memory-mapped I/O. ¿En qué región de memoria se suelen mapear los dispositivos? ¿Qué implicaciones tiene para las instrucciones lw y sw?}
+    
+    \vspace{0.2cm}
+    En un sistema que utiliza \textit{Memory-Mapped I/O} (E/S Mapeada en Memoria), el mapa de direcciones unificado comparte el espacio de memoria RAM tradicional con los registros de control, estado y datos de los periféricos hardware.
+    \begin{itemize}
+        \item \textbf{Región de memoria:} En la arquitectura MIPS32, los dispositivos suelen mapearse en el segmento superior del mapa de direcciones virtuales, específicamente dentro del espacio reservado para el kernel/sistema (\texttt{0xFFFF0000} - \texttt{0xFFFFFFFF}).
+        \item \textbf{Implicaciones para \texttt{lw} y \texttt{sw}:} No se requieren instrucciones especializadas de entrada/salida. Las instrucciones estándar de carga (\texttt{lw}) y almacenamiento (\texttt{sw}) se reutilizan para interactuar con el periférico. Una instrucción \texttt{sw} en la dirección del registro de control inicia un evento de hardware, mientras que una instrucción \texttt{lw} lee el estado o los datos del dispositivo.
+    \end{itemize}
+
+    % --- PREGUNTA 2 ---
+    \item \textbf{\large\color{UCBlue}¿Cuál es la principal diferencia entre memory-mapped I/O y la entrada/salida por puertos? ¿Qué ventajas y desventajas tiene cada enfoque? ¿Por qué MIPS32 utiliza principalmente memory-mapped I/O?}
+    
+    \vspace{0.2cm}
+    \begin{itemize}
+        \item \textbf{Diferencia Principal:} \textit{Memory-Mapped I/O} utiliza el mismo espacio de direcciones y bus para la RAM y los periféricos. Por otro lado, la \textit{E/S por puertos} (Port-Mapped I/O) posee un espacio de direcciones aislado y requiere instrucciones dedicadas (como \texttt{IN} y \texttt{OUT} en x86).
+        \item \textbf{Ventajas y Desventajas:}
+        \begin{itemize}
+            \item \textit{Memory-Mapped I/O:} **Ventaja:** Simplifica el hardware del procesador al no requerir un bus de control extra ni instrucciones exclusivas. Permite usar todos los modos de direccionamiento sobre los periféricos. **Desventaja:** Consume parte del espacio de direccionamiento de memoria RAM principal.
+            \item \textit{Port-Mapped I/O:} **Ventaja:** No reduce el espacio de direcciones de la memoria principal. **Desventaja:** Requiere instrucciones adicionales y circuitos de decodificación más complejos en la CPU.
+        \end{itemize}
+        \item \textbf{Uso en MIPS32:} MIPS32 sigue la filosofía RISC de mantener un conjunto de instrucciones simple y homogéneo. Utilizar \textit{Memory-Mapped I/O} evita la adición de instrucciones de E/S al ISA, optimizando el diseño del camino de datos.
+    \end{itemize}
+
+    % --- PREGUNTA 3 ---
+    \item \textbf{\large\color{UCBlue}En un sistema con memory-mapped I/O: ¿Qué problemas pueden surgir si dos dispositivos usan direcciones solapadas? ¿Cómo se evita este conflicto?}
+    
+    \vspace{0.2cm}
+    Si dos dispositivos comparten o solapan sus direcciones de memoria, ocurre una **colisión en el bus de datos**. Durante una lectura (\texttt{lw}), ambos periféricos intentarían colocar sus datos simultáneamente en el bus, generando estados indeterminados o cortocircuitos lógicos. En operaciones de escritura (\texttt{sw}), ambos dispositivos responderían de forma no deseada.
+    
+    \textbf{Solución:} Se evita mediante una unidad lógica de **Decodificación de Direcciones** (\textit{Address Decoder}) que habilita mediante la señal \textit{Chip Select} (CS) a un único dispositivo a la vez, garantizando que cada registro o periférico ocupe un rango estrictamente disjunto y único en el espacio de memoria.
+
+    % --- PREGUNTA 4 ---
+    \item \textbf{\large\color{UCBlue}¿Por qué se considera que el memory-mapped I/O simplifica el diseño del conjunto de instrucciones de un procesador? ¿Qué tipo de instrucciones adicionales serían necesarias si se usara E/S por puertos?}
+    
+    \vspace{0.2cm}
+    Simplifica el diseño porque elimina la necesidad de crear, decodificar y ejecutar instrucciones especiales para periféricos. Las instrucciones existentes de transferencia de memoria (\texttt{lw}, \texttt{sw}, \texttt{lbu}, \texttt{sb}) asumen toda la interacción hardware.
+    
+    Si se empleara E/S por puertos, la arquitectura necesitaría agregar instrucciones exclusivas como:
+    \begin{itemize}
+        \item \texttt{IN \$rt, port}: Para leer el contenido de un puerto de entrada.
+        \item \texttt{OUT port, \$rs}: Para escribir un valor en un puerto de salida.
+        \item Instrucciones de control de estado del bus de puertos especializadas.
+    \end{itemize}
+
+    % --- PREGUNTA 5 ---
+    \item \textbf{\large\color{UCBlue}¿Qué ocurre a nivel del bus de datos y direcciones cuando el procesador accede a una dirección de memoria que corresponde a un dispositivo? ¿Cómo sabe el hardware que debe acceder a un periférico en lugar de la RAM?}
+    
+    \vspace{0.2cm}
+    Cuando la CPU ejecuta una instrucción \texttt{lw} o \texttt{sw} sobre la dirección de un dispositivo:
+    \begin{enumerate}[label=\arabic*.]
+        \item El procesador coloca la dirección física en el **Bus de Direcciones** y activa las líneas del **Bus de Control** (\texttt{MemRead} o \texttt{MemWrite}).
+        \item El circuito decodificador de direcciones del sistema analiza los bits de mayor peso (MSB) de la dirección.
+        \item Si la dirección cae en el rango de la RAM, el decodificador activa la memoria principal. Si cae en el rango reservado para E/S, el decodificador desactiva la RAM y activa la línea \textit{Enable/Chip Select} del módulo del periférico correspondiente.
+        \item El periférico lee o coloca los datos directamente en el **Bus de Datos**.
+    \end{enumerate}
+
+    % --- PREGUNTA 6 ---
+    \item \textbf{\large\color{UCBlue}¿Es posible que un programa normal (sin privilegios) acceda a un dispositivo mapeado en memoria? ¿Qué mecanismos de protección existen para evitar accesos no autorizados?}
+    
+    \vspace{0.2cm}
+    En un sistema operativo moderno, **no es posible** de forma directa. Los periféricos suelen estar mapeados en regiones del espacio de direcciones reservadas para el modo Kernel (como \texttt{kseg0} o \texttt{kseg1} en MIPS).
+    
+    \textbf{Mecanismos de Protección:}
+    \begin{itemize}
+        \item \textbf{Modos de Ejecución del Procesador:} Distinción entre Modo Usuario y Modo Kernel/Privilegiado.
+        \item \textbf{Unidad de Manejo de Memoria (MMU):} Utiliza tablas de páginas que configuran bits de protección. Si un proceso en modo usuario intenta ejecutar un \texttt{lw} o \texttt{sw} sobre una dirección del sistema, la MMU genera una excepción de fallo de protección de memoria (\textit{Memory Access Exception}), transfiriendo el control al SO.
+    \end{itemize}
+
+    % --- PREGUNTA 7 ---
+    \item \textbf{\large\color{UCBlue}¿Qué técnicas se pueden emplear para evitar esperas activas innecesarias al interactuar con dispositivos?}
+    
+    \vspace{0.2cm}
+    Para superar la ineficiencia de la espera activa (\textit{Polling}), se utilizan las siguientes alternativas:
+    \begin{itemize}
+        \item \textbf{E/S dirigida por Interrupciones (Interrupt-Driven I/O):} El procesador inicia la operación en el dispositivo y continúa ejecutando otras tareas. Cuando el dispositivo termina la operación o captura un dato, envía una señal de interrupción de hardware a la CPU, obligándola a pausar temporalmente su ejecución para atender la rutina de servicio a interrupción (ISR).
+        \item \textbf{Acceso Directo a Memoria (DMA - Direct Memory Access):} Permite que un controlador especial transfiera grandes bloques de datos entre los periféricos y la memoria RAM sin la intervención continua del procesador, liberándolo por completo durante la transferencia.
+    \end{itemize}
+
+    % --- PREGUNTA 8 ---
+    \item \textbf{\large\color{UCBlue}Análisis y Discusión de los Resultados}
+    
+    \vspace{0.2cm}
+    En esta práctica se implementaron y simularon exitosamente controladores de dispositivos bajo la arquitectura MIPS32 en la plataforma MARS:
+    \begin{itemize}
+        \item \textbf{Sensor de Luminosidad (Ejercicio 1):} Se verificó la lógica de inicialización enviando el valor \texttt{0x1} a \texttt{LuzControl} e implementando un bucle de comprobación (\textit{polling}) sobre el registro \texttt{LuzEstado}. La rutina \texttt{LeerLuminosidad} validó correctamente los códigos de estado devueltos (retornando $0$ en éxito y $-1$ ante fallas).
+        \item \textbf{Medidor de Tensión Arterial (Ejercicio 2):} La rutina \texttt{controlador\_tension} demostró el correcto manejo de valores de retorno dobles mediante los registros \texttt{\$v0} (Presión Sistólica) y \texttt{\$v1} (Presión Diastólica), asegurando la sincronización hasta que el dispositivo confirmara el término de la medición (\texttt{TensionEstado} $= 1$).
+        \item \textbf{Conclusión:} El esquema de \textit{Memory-Mapped I/O} facilita la abstracción y control de periféricos mediante ensamblador MIPS32. Sin embargo, se constató que la técnica de \textit{polling} genera un uso intensivo de CPU, resaltando la importancia del estudio de interrupciones de hardware en arquitecturas reales.
+    \end{itemize}
+
+\end{enumerate}
+
+\end{document}

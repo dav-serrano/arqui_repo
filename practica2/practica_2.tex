@@ -1,0 +1,266 @@
+\documentclass[12pt,letterpaper]{article}
+%paquetes que usaremos para este documento
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{graphicx} 
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{xcolor} % Paquete para manejar colores
+\usepackage{titlesec} % Para personalizar títulos
+\usepackage{setspace} % Para un mejor control del interlineado
+
+% Configuración de márgenes estándar para centrar comodamente la informacion
+%y mejorar la lectura
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=3cm}
+
+% --- DEFINICIÓN DE COLORES ---
+%con esto los titulos y subtitulos resaltan para hacer constraste con la informacion
+\definecolor{UCBlue}{RGB}{12, 53, 106}       % Azul institucional profundo (Títulos)
+\definecolor{UCSky}{RGB}{74, 144, 226}       % Azul claro para acentos (Subtítulos)
+
+% Configuración de listas personalizada para las preguntas
+\setlist[enumerate]{
+    topsep=8pt, 
+    itemsep=12pt, 
+    parsep=4pt, 
+    leftmargin=18pt,
+    label=\color{UCBlue}\bfseries\arabic*.
+}
+\setlist[itemize]{topsep=4pt, itemsep=4pt, parsep=2pt, leftmargin=18pt}
+
+\begin{document}
+\spacing{1.15} % Interlineado óptimo para lectura
+
+% =========================================================================
+% PORTADA (PÁGINA 1)
+% =========================================================================
+\thispagestyle{empty} % Quita números de página o encabezados en la portada
+
+% --- ENCABEZADO ---
+%aca esta presente el titulo mas el logo de facyt y el de la UC junto con
+%los nombres de nosotros y la fecha de entrega
+\noindent
+\begin{minipage}[c]{0.18\textwidth}
+    \includegraphics[width=\textwidth]{Uc_logo.png} % Logo de la UC a la izquierda
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.60\textwidth}
+    \centering\small\bfseries\color{UCBlue}
+    UNIVERSIDAD DE CARABOBO\\
+    FACULTAD EXPERIMENTAL DE CIENCIAS Y TECNOLOGÍA\\
+    DEPARTAMENTO DE COMPUTACIÓN\\
+    ARQUITECTURA DEL COMPUTADOR
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.15\textwidth}
+    \includegraphics[width=\textwidth]{facyt.png} % Logo de FACYT a la derecha
+\end{minipage}
+
+\vspace{0.4cm}
+{\color{UCBlue}\hrule height 1.5pt width \textwidth} % Línea divisoria en azul
+
+\vfill % Espacio para centrar el título verticalmente
+
+% --- TÍTULO DE LA PRÁCTICA ---
+\begin{center}
+    {\large\textsf{\textbf{\color{UCSky}{PRÁCTICA DE LABORATORIO \#2}}}} \\[0.6cm]
+    {\LARGE\bfseries\color{UCBlue}{Implementación y Análisis de Quicksort Iterativo\\ y Mergesort Recursivo en Arquitectura MIPS32}} \\
+\end{center}
+
+\vfill % Espacio antes de la sección de identificación
+
+% --- SECCIÓN DE IDENTIFICACIÓN ---
+{\color{UCSky}\hrule height 0.5pt width \textwidth}
+\vspace{0.6cm}
+
+\noindent
+\begin{minipage}[t]{0.5\textwidth}
+    \textbf{\color{UCBlue}{Estudiantes:}} \\[0.2cm]
+    Nathaly Campos \textit{\small C.I. 32.460.314} \\
+    David Serrano \textit{\small C.I. 31.000.672}
+\end{minipage}
+\begin{minipage}[t]{0.49\textwidth}
+    \raggedleft
+    \textbf{\color{UCBlue}{Profesor:}} \\[0.2cm]
+    José Canache
+\end{minipage}
+
+\newpage % OBLIGA A QUE TODO LO SIGUIENTE VAYA A LA SEGUNDA PÁGINA
+\pagenumbering{arabic} % Reinicia/activa la numeración de páginas desde aquí
+
+% =========================================================================
+% DESARROLLO DEL INFORME 
+% =========================================================================
+
+\begin{enumerate}
+
+    % --- PREGUNTA 1 ---
+    \item \textbf{\large\color{UCBlue}¿Qué diferencias existen entre registros temporales (\$t0-\$t9) y registros guardados (\$s0-\$s7) y cómo se aplicó esta distinción en la práctica?}
+    
+    \vspace{0.2cm}
+    La convención de llamadas de la arquitectura MIPS32 clasifica los registros de propósito general según la responsabilidad de preservación entre subrutinas:
+    \begin{itemize}
+        \item \textbf{Registros Temporales (\$t0-\$t9):} Son registros de libre modificación por la subrutina llamada (caller-saved). La función llamada puede alterar su contenido sin la obligación de respaldarlo en la memoria.
+        \item \textbf{Registros Guardados (\$s0-\$s7):} Son registros cuyo valor debe ser preservado a lo largo de las llamadas a funciones (callee-saved). Si una rutina requiere modificar un registro \$s, está obligada en su prólogo a respaldar su valor en la pila (\$sp) y restaurarlo antes de retornar.
+    \end{itemize}
+    
+    \textbf{\color{UCSky}\sffamily Aplicación en la práctica:}
+    \begin{itemize}
+        \item En Mergesort Recursivo, los registros \$s0-\$s3 se utilizaron para mantener intactos los límites (left, right, mid) y la dirección del arreglo a través de las constantes invocaciones recursivas, mientras que los registros \$t procesaron los bucles temporales del mezclado.
+        \item En Quicksort Iterativo, los registros temporales (\$t) se usaron de forma intensiva para la lógica de partición interna (esquema de Lomuto, bucle \texttt{part\_loop}) y el cálculo de direcciones físicas mediante desplazamientos (\texttt{sll}). Adicionalmente, se emplearon registros \$s0-\$s2 dentro del ciclo iterativo principal para mantener temporalmente los límites (\textit{low}, \textit{high}) extraídos de la pila auxiliar manual y la posición final del pivote.
+    \end{itemize}
+
+    % --- PREGUNTA 2 ---
+    \item \textbf{\large\color{UCBlue}¿Qué diferencias existen entre los registros \$a0-\$a3, \$v0-\$v1, \$ra y cómo se aplicó esta distinción en la práctica?}
+    
+    \vspace{0.2cm}
+    Estos registros permiten la comunicación entre rutinas bajo la convención MIPS:
+    \begin{itemize}
+        \item \textbf{Registros de Argumentos (\$a0-\$a3):} Se emplean exclusivamente para transferir parámetros de entrada a las subrutinas.
+        \item \textbf{Registros de Valor de Retorno (\$v0-\$v1):} Almacenan los resultados producidos por una subrutina o el código de servicio para llamadas al sistema (\texttt{syscall}).
+        \item \textbf{Registro de Dirección de Retorno (\$ra):} Guarda de forma automática la dirección de la siguiente instrucción tras un salto y enlace (\texttt{jal}).
+    \end{itemize}
+    
+    \textbf{\color{UCSky}\sffamily Aplicación en la práctica:} En Mergesort Recursivo, \$a0-\$a3 pasaron los parámetros de sub-arreglos a las funciones divididas, mientras que el registro \$ra fue guardado obligatoriamente en la pila en cada nivel recursivo para evitar perder la cadena de retornos. En Quicksort Iterativo, la subrutina \texttt{quicksort\_iterative} recibió la dirección base y sus límites iniciales en \$a0-\$a2. Dado que toda la lógica de partición se manejó de forma in-line dentro de la misma función, no fue necesario utilizar \$v0 para retornar índices de pivote.
+
+    % --- PREGUNTA 3 ---
+    \item \textbf{\large\color{UCBlue}¿Cómo afecta el uso de registros frente a memoria en el rendimiento de los algoritmos de ordenamiento implementados?}
+    
+    \vspace{0.2cm}
+    El acceso a los registros del procesador ocurre en un solo ciclo de reloj durante la etapa de ejecución de la CPU. En contraste, el acceso a la memoria RAM mediante \texttt{lw} y \texttt{sw} involucra la etapa MEM, introduciendo latencias de bus e incrementando la probabilidad de paradas en el pipeline por dependencias de datos.
+    
+    En Quicksort Iterativo, el rendimiento se optimizó al mantener el proceso de partición operando fuertemente sobre registros locales, reduciendo las operaciones de memoria (\texttt{lw}/\texttt{sw}) solo al momento de desapilar y apilar los rangos de sub-arreglos en la pila auxiliar apuntada por \$t8. En Mergesort Recursivo, la dependencia de la pila clásica para cada división y el uso del arreglo auxiliar externo imponen un mayor tráfico constante de memoria, haciendo que el rendimiento esté fuertemente condicionado por los tiempos de acceso a la RAM.
+
+    % --- PREGUNTA 4 ---
+    \item \textbf{\large\color{UCBlue}¿Qué impacto tiene el uso de estructuras de control (bucles anidados, saltos) en la eficiencia de los algoritmos en MIPS32?}
+    
+    \vspace{0.2cm}
+    Las estructuras de control influyen directamente en la fluidez del pipeline:
+    \begin{itemize}
+        \item \textbf{Bucles anidados:} En la fase de mezcla de Mergesort y en el bucle \texttt{part\_loop} de Quicksort, las iteraciones repiten comparaciones e incrementos múltiples veces, demandando una ejecución eficiente de instrucciones de salto condicional (\texttt{bge}, \texttt{bgt}).
+        \item \textbf{Riesgos de Control (Control Hazards):} Cada salto incondicional (\texttt{j}, \texttt{jal}, \texttt{jr}) o salto condicional tomado interrumpe la secuencia lineal de captura de instrucciones (Fetch), lo que en procesadores reales obliga a descartar instrucciones en flujo (flush) si no se usan técnicas de predicción de saltos.
+    \end{itemize}
+
+    % --- PREGUNTA 5 ---
+    \item \textbf{\large\color{UCBlue}¿Cuáles son las diferencias de complejidad computacional entre el algoritmo Quicksort y el algoritmo Mergesort? ¿Qué implicaciones tiene esto para la implementación en un entorno MIPS32?}
+    
+    \vspace{0.2cm}
+    \begin{itemize}
+        \item \textbf{Quicksort (Iterativo):} Tiene una complejidad temporal promedio de $\mathcal{O}(n \log n)$ y un peor caso de $\mathcal{O}(n^2)$. Su gran ventaja es que ordena \textit{in-place} ($\mathcal{O}(1)$ espacio auxiliar fuera de la pila manual), lo que ahorra consumo de memoria RAM general.
+        \item \textbf{Mergesort (Recursivo):} Garantiza un tiempo $\mathcal{O}(n \log n)$ en todos los casos (mejor, promedio y peor). Sin embargo, requiere $\mathcal{O}(n)$ de espacio de memoria adicional en el segmento data para el buffer de mezcla auxiliar y memoria de pila para el árbol de recursión.
+    \end{itemize}
+    
+    \textbf{\color{UCSky}\sffamily Implicaciones en MIPS32:} Nuestra versión iterativa de Quicksort ahorró tiempo y recursos al no construir múltiples marcos de pila clásicos por llamadas a funciones, manejando la recursividad simulada mediante una única pila plana (reservando 400 bytes y utilizando \$t8 como puntero). Por su parte, Mergesort Recursivo ofrece absoluta predecibilidad en tiempos de ejecución, a costa de un tráfico mucho más pesado en la RAM.
+
+    % --- PREGUNTA 6 ---
+    \newpage
+    \item \textbf{\large\color{UCBlue}¿Cuáles son las fases del ciclo de ejecución de instrucciones en la arquitectura MIPS32 (camino de datos)? ¿En qué consisten?}
+    
+    \vspace{0.2cm}
+    El camino de datos (datapath) de MIPS32 consta de 5 etapas fundamentales:
+    \begin{enumerate}[label=\arabic*., leftmargin=15pt]
+        \item \textbf{IF (Instruction Fetch):} Búsqueda de la instrucción en la memoria apuntada por el contador de programa (PC) e incremento de PC + 4.
+        \item \textbf{ID (Instruction Decode / Register Read):} Decodificación del código de operación y lectura de registros fuentes.
+        \item \textbf{EX (Execute / Address Calculation):} Operación en la Unidad Aritmético-Lógica (ALU) para calcular resultados, direcciones de memoria o condiciones de salto.
+        \item \textbf{MEM (Memory Access):} Lectura o escritura en la memoria RAM principal si se ejecuta una instrucción \texttt{lw} o \texttt{sw}.
+        \item \textbf{WB (Write Back):} Escritura del resultado final de regreso en el registro destino del banco de registros.
+    \end{enumerate}
+
+    % --- PREGUNTA 7 ---
+    \item \textbf{\large\color{UCBlue}¿Qué tipo de instrucciones se usaron predominantemente en la práctica (R, I, J) y por qué?}
+    
+    \vspace{0.2cm}
+    \begin{itemize}
+        \item \textbf{Tipo I (Immediate):} Fueron las más utilizadas. Incluyen accesos a memoria (\texttt{lw}, \texttt{sw}), saltos de condición (\texttt{beq}, \texttt{bne}, \texttt{bge}) e instrucciones aritméticas con constantes (\texttt{addi}, \texttt{subi}, \texttt{sll}). El acceso a arreglos y el control de ciclos justifican su alta frecuencia.
+        \item \textbf{Tipo R (Register):} Empleadas para comparaciones lógicas y operaciones aritméticas directas entre registros (\texttt{add}, \texttt{sub}, \texttt{slt}), así como para retornos de función con \texttt{jr \$ra}.
+        \item \textbf{Tipo J (Jump):} Utilizadas para los saltos incondicionales globales (\texttt{j}) en los bucles de Quicksort y llamadas a función (\texttt{jal}) en la recursión de Mergesort.
+    \end{itemize}
+
+    % --- PREGUNTA 8 ---
+    \item \textbf{\large\color{UCBlue}¿Cómo se ve afectado el rendimiento si se abusa del uso de instrucciones de salto (j, beq, bne) en lugar de usar estructuras lineales?}
+    
+    \vspace{0.2cm}
+    El abuso de instrucciones de salto impacta el rendimiento del procesador MIPS32 debido a:
+    \begin{itemize}
+        \item Alteración del flujo secuencial en la memoria de instrucciones, reduciendo la efectividad del caché de instrucciones (I-Cache).
+        \item Penalizaciones por bifurcación en la etapa de Fetch, ya que el procesador debe calcular la dirección destino antes de continuar cargando la siguiente instrucción válida.
+    \end{itemize}
+
+    % --- PREGUNTA 9 ---
+    \item \textbf{\large\color{UCBlue}¿Qué ventajas ofrece el modelo RISC de MIPS en la implementación de algoritmos básicos como los de ordenamiento?}
+    
+    \vspace{0.2cm}
+    El modelo RISC (Reduced Instruction Set Computer) brinda grandes ventajas:
+    \begin{itemize}
+        \item \textbf{Set de instrucciones simplificado e instrucciones de 32 bits fijas:} Facilita el diseño de un hardware con ciclo de reloj sumamente rápido.
+        \item \textbf{Arquitectura Load/Store:} Separa estrictamente el acceso a la memoria RAM de los cálculos de la ALU, garantizando que las comparaciones de ordenamiento se hagan a máxima velocidad en los registros.
+        \item \textbf{Banco de 32 registros generales:} Permite retener variables de iteración, direcciones e índices sin depender de memoria RAM lenta.
+    \end{itemize}
+
+    % --- PREGUNTA 10 ---
+    \item \textbf{\large\color{UCBlue}¿Cómo se usó el modo de ejecución paso a paso (Step, Step Into) en MARS para verificar la correcta ejecución del algoritmo?}
+    
+    \vspace{0.2cm}
+    \begin{itemize}
+        \item \textbf{Step (F7):} Se utilizó para auditar el avance lineal del bucle interno \texttt{part\_loop} en Quicksort y el bucle de copia en Mergesort, verificando la correcta actualización de contadores e índices.
+        \item \textbf{Step Into:} Fue indispensable en Mergesort Recursivo para ingresar al interior de las funciones invocadas con \texttt{jal}, permitiendo comprobar que el Stack Pointer (\texttt{\$sp}) reservara exactamente el espacio del marco de pila y resguardara la dirección de retorno \texttt{\$ra} antes de la siguiente división.
+    \end{itemize}
+
+    % --- PREGUNTA 11 ---
+    \newpage
+    \item \textbf{\large\color{UCBlue}¿Qué herramienta de MARS fue más útil para observar el contenido de los registros y detectar errores lógicos?}
+    
+    \vspace{0.2cm}
+    Las herramientas esenciales fueron el panel de \textbf{Registers Display} y la ventana de \textbf{Data Segment}:
+    \begin{itemize}
+        \item El panel de registros permitió rastrear la evolución de los valores (\texttt{\$t8} actuando como puntero de pila en Quicksort, o los límites pasados por \texttt{\$a0-\$a3}).
+        \item La ventana de Data Segment permitió visualizar directamente en la memoria RAM cómo los elementos del arreglo cambian de posición tras cada intercambio en la partición de Quicksort o se vuelcan ordenados desde el arreglo temporal en Mergesort.
+    \end{itemize}
+
+    % --- PREGUNTA 12 ---
+    \item \textbf{\large\color{UCBlue}¿Cómo puede visualizarse en MARS el camino de datos para una instrucción tipo R? (por ejemplo: add)}
+    
+    \vspace{0.2cm}
+    Mediante la herramienta integrada \textbf{MARS MIPS X-Ray Display Tool}:
+    \begin{itemize}
+        \item Se resalta la activación de líneas de control: RegDst $= 1$ (selecciona el registro rd), ALUSrc $= 0$ (el segundo operando proviene del banco de registros), MemToReg $= 0$, RegWrite $= 1$ y señales de lectura/escritura de memoria inactivas.
+        \item Permite observar la ruta limpia que conecta los registros fuente con las entradas A y B de la ALU y el posterior retorno del resultado hacia el registro destino.
+    \end{itemize}
+
+    % --- PREGUNTA 13 ---
+    \item \textbf{\large\color{UCBlue}¿Cómo puede visualizarse en MARS el camino de datos para una instrucción tipo I? (por ejemplo: lw)}
+    
+    \vspace{0.2cm}
+    A través de la misma herramienta \textbf{MIPS X-Ray}:
+    \begin{itemize}
+        \item Se observan las señales de control activas: ALUSrc $= 1$ (pasa el valor inmediato extendido en signo a la ALU), MemRead $= 1$ (habilita la lectura de la memoria de datos), MemToReg $= 1$ (envía el dato de la memoria al registro) y RegWrite $= 1$.
+        \item Destaca el paso del inmediato por la unidad de extensión de signo (Sign Extend), el cálculo de la dirección efectiva (Base + Offset) en la ALU y la transferencia del dato leído desde la RAM hacia el registro en el banco.
+    \end{itemize}
+
+    % --- PREGUNTA 14 ---
+    \item \textbf{\large\color{UCBlue}Justificar la elección del algoritmo alternativo}
+    
+    \vspace{0.2cm}
+    La elección de implementar \textbf{Quicksort en su forma Iterativa} como contraparte de \textbf{Mergesort Recursivo} se justifica plenamente bajo criterios de arquitectura de computadores:
+    \begin{itemize}
+        \item Demuestra cómo un algoritmo conceptualmente recursivo puede adaptarse a sistemas embebidos mediante una \textbf{pila explícita manual}, eliminando el costo implícito de guardado de contextos de función (stack frames) y previniendo desbordamientos de pila de la CPU.
+        \item Ofrece un contraste didáctico ideal: mientras Mergesort explora el uso tradicional de la pila de llamadas con \texttt{jal} y \texttt{\$ra}, Quicksort Iterativo exhibe un control directo del flujo de datos integrando lógicas in-line en la misma rutina.
+    \end{itemize}
+
+    % --- PREGUNTA 15 ---
+    \item \textbf{\large\color{UCBlue}Análisis y Discusión de los Resultados}
+    
+    \vspace{0.2cm}
+    Tras probar ambos programas en el simulador MARS con arreglos de prueba en distintas condiciones, se obtienen las siguientes conclusiones:
+    \begin{itemize}
+        \item \textbf{Quicksort Iterativo:} Mostró una alta eficiencia al realizar todo el proceso \textit{in-place}. Al integrar la partición internamente y evitar múltiples llamadas a funciones con \texttt{jal}, redujo drásticamente el peso de crear contextos de sistema, gestionando los límites directamente a través de una pila auxiliar ligera gobernada por el registro \texttt{\$t8}.
+        \item \textbf{Mergesort Recursivo:} Presentó un comportamiento sumamente estable y garantizado $\mathcal{O}(n \log n)$, sin depender del orden previo de los datos. Sin embargo, requirió mayor espacio de memoria (pila de llamadas y buffer auxiliar en data) y una cantidad significativamente mayor de accesos a RAM debido a la fase de copiado en el mezclado.
+        \item \textbf{Conclusión Final:} En la arquitectura MIPS32, el diseño de algoritmos debe balancear la elegancia lógica con la realidad física del hardware; integrar particiones iterativas minimiza el tráfico con la memoria de ejecución, ofreciendo un mejor perfil de rendimiento general frente al exceso de llamadas recursivas.
+    \end{itemize}
+
+\end{enumerate}
+
+\end{document}\vfill % Espacio antes de la sección de identificación

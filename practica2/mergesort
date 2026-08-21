@@ -1,0 +1,248 @@
+# ====================================================================
+# Algoritmo: Mergesort Recursivo en MIPS32
+# ====================================================================
+
+.data
+    array:        .word 12, 3, 5, 7, 19, 1, 8, 2  # Arreglo de enteros a ordenar
+    size:         .word 8                          # Cantidad de elementos
+    temp_arr_rec: .space 400                       # Arreglo auxiliar en RAM para la mezcla
+
+    msg_orig: .asciiz "Arreglo original:  "
+    msg_sort: .asciiz "\nArreglo ordenado:  "
+    space:    .asciiz " "
+
+.text
+.globl main
+
+# --------------------------------------------------------------------
+# PUNTO DE ENTRADA PRINCIPAL (main)
+# --------------------------------------------------------------------
+main:
+    # --- Imprimir mensaje inicial ---
+    li   $v0, 4              # Código de syscall 4: imprimir cadena (string)
+    la   $a0, msg_orig       # Dirección del mensaje original
+    syscall
+
+    # --- Mostrar arreglo original por pantalla ---
+    la   $a0, array          # $a0 = dirección base del arreglo
+    lw   $a1, size           # $a1 = tamaño del arreglo (8)
+    jal  print_array         # Llamada a subrutina para imprimir
+
+    # --- Preparar parámetros para Mergesort Recursivo ---
+    la   $a0, array          # $a0 = dirección del arreglo
+    li   $a1, 0              # $a1 = left = 0 (primer índice)
+    lw   $t0, size           # Cargar el tamaño total en $t0
+    subi $a2, $t0, 1         # $a2 = right = size - 1 (último índice: 7)
+
+    # --- Ejecutar el algoritmo ---
+    jal  mergesort_recursive 
+
+    # --- Imprimir mensaje de resultado ---
+    li   $v0, 4              # Código de syscall 4
+    la   $a0, msg_sort       # Dirección del mensaje de salida
+    syscall
+
+    # --- Mostrar arreglo ya ordenado por pantalla ---
+    la   $a0, array          # Dirección base del arreglo
+    lw   $a1, size           # Tamaño del arreglo
+    jal  print_array         # Imprimir
+
+    # --- Finalización limpia del programa ---
+    li   $v0, 10             # Código de syscall 10: exit
+    syscall
+
+
+# --------------------------------------------------------------------
+# SUBRUTINA: print_array
+# Parámetros: $a0 = dirección base, $a1 = tamaño N
+# --------------------------------------------------------------------
+print_array:
+    move $t0, $a0            # $t0 guarda el puntero actual a la memoria
+    li   $t1, 0              # $t1 es nuestro contador del ciclo (i = 0)
+
+print_loop:
+    bge  $t1, $a1, print_end # Si i >= N, terminamos el recorrido
+
+    lw   $a0, 0($t0)         # Cargar en $a0 el número almacenado en $t0
+    li   $v0, 1              # Código de syscall 1: imprimir entero
+    syscall
+
+    li   $v0, 4              # Código de syscall 4: imprimir espacio
+    la   $a0, space
+    syscall
+
+    addi $t0, $t0, 4         # Avanzar el puntero 4 bytes (siguiente palabra/.word)
+    addi $t1, $t1, 1         # i++
+    j    print_loop          # Repetir ciclo
+
+print_end:
+    jr   $ra                 # Retornar a la llamada principal
+
+
+# --------------------------------------------------------------------
+# SUBRUTINA: mergesort_recursive
+# Parámetros: $a0 = dirección array, $a1 = left, $a2 = right
+# --------------------------------------------------------------------
+mergesort_recursive:
+    # --- CASO BASE ---
+   
+    bge  $a1, $a2, end_merge_rec # Si left >= right, el sub-arreglo tiene 1 o 0 elementos; ya está ordenado
+
+    # --- CASO RECURSIVO: GUARDAR CONTEXTO EN LA PILA ($sp) ---
+    # Necesitamos reservar 20 bytes (5 registros x 4 bytes c/u)
+    addi $sp, $sp, -20
+    sw   $ra, 0($sp)         # Guardar la dirección de retorno (imprescindible en recursión)
+    sw   $s0, 4($sp)         # Guardar $s0 (dirección del arreglo)
+    sw   $s1, 8($sp)         # Guardar $s1 (índice left)
+    sw   $s2, 12($sp)        # Guardar $s2 (índice right)
+    sw   $s3, 16($sp)        # Guardar $s3 (índice mid)
+
+    # Copiar los parámetros a registros guardados ($s) para preservarlos
+    move $s0, $a0            # $s0 = array
+    move $s1, $a1            # $s1 = left
+    move $s2, $a2            # $s2 = right
+
+    # --- CALCULAR EL PUNTO MEDIO: mid = left + (right - left) / 2 ---
+    sub  $t0, $s2, $s1       # $t0 = right - left
+    sra  $t0, $t0, 1         # Shift right de 1 bit = división entera entre 2
+    add  $s3, $s1, $t0       # $s3 = mid = left + $t0
+
+    # --- RECURSIÓN 1: MITAD IZQUIERDA (left hasta mid) ---
+    move $a0, $s0            # $a0 = array
+    move $a1, $s1            # $a1 = left
+    move $a2, $s3            # $a2 = mid
+    jal  mergesort_recursive # Invocación recursiva izquierda
+
+    # --- RECURSIÓN 2: MITAD DERECHA (mid + 1 hasta right) ---
+    move $a0, $s0            # $a0 = array
+    addi $a1, $s3, 1         # $a1 = mid + 1
+    move $a2, $s2            # $a2 = right
+    jal  mergesort_recursive # Invocación recursiva derecha
+
+    # --- PROCESO DE MEZCLA (MERGE) ---
+    # Parámetros para merge: arr, temp, left, mid (y right por pila)
+    move $a0, $s0            # $a0 = array
+    la   $a1, temp_arr_rec   # $a1 = dirección del arreglo temporal
+    move $a2, $s1            # $a2 = left
+    move $a3, $s3            # $a3 = mid
+
+    # MIPS solo pasa 4 parámetros en $a0-$a3. El 5to (right) se pasa vía pila:
+    addi $sp, $sp, -4
+    sw   $s2, 0($sp)         # Guardar right ($s2) en la punta de la pila
+    jal  merge_procedure_rec # Llamar a la función de ordenado y mezclado
+    addi $sp, $sp, 4          # Limpiar el 5to parámetro de la pila
+
+    # --- RESTAURAR CONTEXTO DE LA PILA ---
+    lw   $ra, 0($sp)         # Recuperar dirección de retorno original
+    lw   $s0, 4($sp)         # Recuperar $s0
+    lw   $s1, 8($sp)         # Recuperar $s1
+    lw   $s2, 12($sp)        # Recuperar $s2
+    lw   $s3, 16($sp)        # Recuperar $s3
+    addi $sp, $sp, 20        # Devolver el espacio reservado en la pila
+
+end_merge_rec:
+    jr   $ra                 # Retornar al nivel de recursión anterior o al main
+
+
+# --------------------------------------------------------------------
+# SUBRUTINA ACCIÓN: merge_procedure_rec
+# Une dos sub-arreglos ordenados usando un arreglo temporal
+# Parámetros: $a0 = arr, $a1 = temp, $a2 = left, $a3 = mid, 0($sp) = right
+# --------------------------------------------------------------------
+merge_procedure_rec:
+    lw   $t0, 0($sp)         # Extraer de la pila el 5to parámetro ($t0 = right)
+
+    # --- INICIALIZACIÓN DE PUNTEROS / ÍNDICES ---
+    move $t1, $a2            # $t1 = i = left (apunta a la mitad izquierda)
+    addi $t2, $a3, 1         # $t2 = j = mid + 1 (apunta a la mitad derecha)
+    move $t3, $a2            # $t3 = k = left (índice para el arreglo temporal)
+
+# --- FASE 1: Comparar y copiar el menor entre ambas mitades ---
+mr_loop1:
+    bgt  $t1, $a3, mr_loop2  # Si i > mid, se agotó la mitad izquierda -> ir a fase 2
+    bgt  $t2, $t0, mr_loop2  # Si j > right, se agotó la mitad derecha -> ir a fase 2
+
+    # Calcular dirección de arr[i]: $a0 + (i * 4)
+    sll  $t4, $t1, 2         # $t4 = i * 4 (desplazamiento en bytes)
+    add  $t4, $a0, $t4       # $t4 = dirección física de arr[i]
+    lw   $t5, 0($t4)         # $t5 = valor de arr[i]
+
+    # Calcular dirección de arr[j]: $a0 + (j * 4)
+    sll  $t6, $t2, 2         # $t6 = j * 4 (desplazamiento en bytes)
+    add  $t6, $a0, $t6       # $t6 = dirección física de arr[j]
+    lw   $t7, 0($t6)         # $t7 = valor de arr[j]
+
+    bgt  $t5, $t7, mr_take_j# Si arr[i] > arr[j], el elemento de la derecha es menor
+
+    # -- Caso: arr[i] es menor o igual (tomar de la izquierda) --
+    sll  $t8, $t3, 2         # $t8 = k * 4
+    add  $t8, $a1, $t8       # $t8 = dirección física de temp[k]
+    sw   $t5, 0($t8)         # Guardar arr[i] en temp[k]
+    addi $t1, $t1, 1         # i++ (avanzar en la mitad izquierda)
+    j    mr_inc_k
+
+mr_take_j:
+    # -- Caso: arr[j] es estrictamente menor (tomar de la derecha) --
+    sll  $t8, $t3, 2         # $t8 = k * 4
+    add  $t8, $a1, $t8       # $t8 = dirección física de temp[k]
+    sw   $t7, 0($t8)         # Guardar arr[j] en temp[k]
+    addi $t2, $t2, 1         # j++ (avanzar en la mitad derecha)
+
+mr_inc_k:
+    addi $t3, $t3, 1         # k++ (avanzar posición en el temporal)
+    j    mr_loop1            # Repetir comparación
+
+# --- FASE 2: Copiar elementos restantes de la mitad izquierda (si quedaron) ---
+mr_loop2:
+    bgt  $t1, $a3, mr_loop3  # Si i > mid, no quedan elementos a la izquierda
+
+    sll  $t4, $t1, 2         # $t4 = i * 4
+    add  $t4, $a0, $t4       # Dirección de arr[i]
+    lw   $t5, 0($t4)         # Cargar arr[i]
+
+    sll  $t8, $t3, 2         # $t8 = k * 4
+    add  $t8, $a1, $t8       # Dirección de temp[k]
+    sw   $t5, 0($t8)         # temp[k] = arr[i]
+
+    addi $t1, $t1, 1         # i++
+    addi $t3, $t3, 1         # k++
+    j    mr_loop2
+
+# --- FASE 3: Copiar elementos restantes de la mitad derecha (si quedaron) ---
+mr_loop3:
+    bgt  $t2, $t0, mr_copy_back # Si j > right, no quedan elementos a la derecha
+
+    sll  $t6, $t2, 2         # $t6 = j * 4
+    add  $t6, $a0, $t6       # Dirección de arr[j]
+    lw   $t7, 0($t6)         # Cargar arr[j]
+
+    sll  $t8, $t3, 2         # $t8 = k * 4
+    add  $t8, $a1, $t8       # Dirección de temp[k]
+    sw   $t7, 0($t8)         # temp[k] = arr[j]
+
+    addi $t2, $t2, 1         # j++
+    addi $t3, $t3, 1         # k++
+    j    mr_loop3
+
+# --- FASE 4: Vuelco (Copiar los datos ya ordenados del temporal al original) ---
+mr_copy_back:
+    move $t1, $a2            # $t1 = i = left (empezamos desde la posición inicial del tramo)
+
+mr_c_loop:
+    bgt  $t1, $t0, mr_done   # Si i > right, terminamos de volcar el tramo
+
+    # Leer dato del arreglo temporal temp[i]
+    sll  $t8, $t1, 2         # $t8 = i * 4
+    add  $t8, $a1, $t8       # Dirección de temp[i]
+    lw   $t5, 0($t8)         # $t5 = temp[i]
+
+    # Escribir dato sobre el arreglo original arr[i]
+    sll  $t4, $t1, 2         # $t4 = i * 4
+    add  $t4, $a0, $t4       # Dirección de arr[i]
+    sw   $t5, 0($t4)         # arr[i] = temp[i]
+
+    addi $t1, $t1, 1         # i++
+    j    mr_c_loop           # Continuar copiando
+
+mr_done:
+    jr   $ra                 # Salir del procedimiento de mezcla
