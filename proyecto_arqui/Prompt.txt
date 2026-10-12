@@ -1,0 +1,3 @@
+Prompt Utilizado para la Mejora
+
+Prompt: "Actúa como un profesor especialista en Arquitectura de Computadores y optimización de GPUs. Diseña la estructura y el contenido técnico detallado para una infografía y diapositivas de nivel universitario sobre el Proyecto 16: 'Simulador de Memoria Caché para Gráficos 3D'. La infografía debe integrar de forma esquemática: 1) La descomposición de direcciones de 64 bits (Tag, Índice, Offset), 2) La comparativa visual entre el acceso a texturas lineal (Scanline) frente a la Curva de Morton y Tiled 8x8, y 3) El impacto gráfico de las políticas de escritura Write-Back (Dirty Bit) y Write-Through en el Framebuffer. Utiliza un formato limpio, riguroso y optimizado para la defensa ante un jurado académico."

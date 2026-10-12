@@ -1,0 +1,217 @@
+\documentclass[12pt,letterpaper]{article}
+% Paquetes necesarios para el documento
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{graphicx} 
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{xcolor} % Paquete para manejar colores
+\usepackage{titlesec} % Para personalizar títulos
+\usepackage{setspace} % Para un mejor control del interlineado
+\usepackage{hyperref}
+\usepackage{listings}
+
+% Configuración de márgenes estándar para centrar cómodamente la información
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=3cm}
+
+% --- DEFINICIÓN DE COLORES ---
+\definecolor{UCBlue}{RGB}{12, 53, 106}        % Azul institucional profundo (Títulos)
+\definecolor{UCSky}{RGB}{74, 144, 226}        % Azul claro para acentos (Subtítulos)
+
+% Configuración de listas personalizada
+\setlist[enumerate]{
+    topsep=8pt, 
+    itemsep=12pt, 
+    parsep=4pt, 
+    leftmargin=18pt,
+    label=\color{UCBlue}\bfseries\arabic*.
+}
+\setlist[itemize]{topsep=4pt, itemsep=4pt, parsep=2pt, leftmargin=18pt}
+
+% Configuración para bloques de código
+\lstset{
+    language=C++,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{green!60!black},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\begin{document}
+\spacing{1.15} % Interlineado óptimo para lectura
+
+% =========================================================================
+% PORTADA (PÁGINA 1)
+% =========================================================================
+\thispagestyle{empty} % Quita números de página y encabezados en la portada
+
+% --- ENCABEZADO ---
+\noindent
+\begin{minipage}[c]{0.18\textwidth}
+    \includegraphics[width=\textwidth]{Uc_logo.png} % Logo de la UC a la izquierda
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.60\textwidth}
+    \centering\small\bfseries\color{UCBlue}
+    UNIVERSIDAD DE CARABOBO\\
+    FACULTAD EXPERIMENTAL DE CIENCIAS Y TECNOLOGÍA\\
+    DEPARTAMENTO DE COMPUTACIÓN\\
+    ARQUITECTURA DE COMPUTADORES
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.15\textwidth}
+    \includegraphics[width=\textwidth]{facyt.png} % Logo de FACYT a la derecha
+\end{minipage}
+
+\vspace{0.4cm}
+{\color{UCBlue}\hrule height 1.5pt width \textwidth} % Línea divisoria en azul
+
+\vfill % Espacio para centrar el título verticalmente
+
+% --- TÍTULO DEL PROYECTO ---
+\begin{center}
+    {\large\textsf{\textbf{\color{UCSky}{PROYECTO N\textdegree 16}}}} \\[0.6cm]
+    {\LARGE\bfseries\color{UCBlue}{Simulador de Memoria Caché para Gráficos 3D}} \\[0.4cm]
+    {\normalsize\itshape\color{gray} Optimización de latencias, jerarquía L2/L3 y políticas de acceso en el Graphics Pipeline}
+\end{center}
+
+\vfill % Espacio antes de la sección de identificación
+
+% --- SECCIÓN DE IDENTIFICACIÓN ---
+{\color{UCSky}\hrule height 0.5pt width \textwidth}
+\vspace{0.6cm}
+
+\noindent
+\begin{minipage}[t]{0.5\textwidth}
+    \textbf{\color{UCBlue}{Profesor:}} \\[0.2cm]
+    José Canache
+\end{minipage}
+\begin{minipage}[t]{0.49\textwidth}
+    \raggedleft
+    \textbf{\color{UCBlue}{Estudiantes:}} \\[0.2cm]
+    David Serrano \textit{\small C.I. 31.000.672} \\
+    Gabriel Vargas \textit{\small C.I. 32.035.567}
+\end{minipage}
+
+\vspace{0.8cm}
+\begin{center}
+    \textbf{\color{UCBlue}{Valencia, Octubre de 2026}}
+\end{center}
+
+\newpage 
+\pagenumbering{arabic} % Activa la numeración de páginas desde aquí
+\tableofcontents
+\newpage
+
+% =========================================================================
+% 1. EL PROBLEMA Y MOTIVACIÓN DEL PROYECTO
+% =========================================================================
+\section{\color{UCBlue}El Problema y Motivación del Proyecto}
+
+\subsection{\color{UCSky}Planteamiento del Problema}
+En los sistemas de computación gráfica modernos, el renderizado 3D de alta fidelidad procesa millones de datos geométricos y visuales por segundo (vértices, normales, coordenadas de textura y píxeles del framebuffer). Históricamente, se ha asumido que el rendimiento gráfico depende exclusivamente de la potencia de cálculo bruto (FLOPS) de la unidad de procesamiento gráfico (GPU). Sin embargo, el cuello de botella crítico en la arquitectura de hardware actual radica en la \textbf{latencia de la memoria de video (VRAM)}. 
+
+Mientras que los núcleos de procesamiento ejecutan instrucciones en fracciones de nanosegundo, acceder a la memoria externa VRAM para recuperar texturas o vértices no cacheados puede demorar cientos de ciclos de reloj de espera ($\approx 100$ ciclos o más). Esta disparidad genera un fenómeno conocido como \textbf{atasco del bus de memoria}, donde los recursos de cálculo permanecen subutilizados debido a la espera de datos.
+
+\subsection{\color{UCSky}Razón de Escoger el Proyecto y Objetivos}
+Este proyecto fue seleccionado con el propósito de profundizar en el comportamiento y la optimización de la jerarquía de memoria intermedia (Caché L2/L3) aplicada específicamente al dominio del \textit{Graphics Pipeline}. 
+
+Lo que se busca solucionar y evaluar mediante el desarrollo de este simulador en C++17 incluye:
+\begin{enumerate}
+    \item \textbf{Cuantificación del Hit Ratio y Tráfico VRAM:} Medir con precisión el porcentaje de aciertos (\textit{Hit Ratio}) y fallos (\textit{Miss Ratio}) ante patrones de acceso típicos de cargas gráficas.
+    \item \textbf{Evaluación de Políticas de Escritura:} Analizar el impacto en el tráfico del bus de memoria al emplear estrategias de escritura directa (\textit{Write-Through}) frente a estrategias de aplazamiento con marcado de modificación (\textit{Write-Back} con \textit{Dirty Bit}).
+    \item \textbf{Mitigación de Latencia por Prefetching:} Estudiar la eficacia de los mecanismos de precarga secuencial (\textit{Stream Prefetcher N+1}) para anticipar las solicitudes de datos espaciales y temporales.
+    \item \textbf{Optimización Espacial de Texturas y Geometría:} Demostrar cómo la disposición de los datos en memoria —comparando el orden lineal tradicional con técnicas avanzadas como \textit{Tiled Textures 8x8} y la Curva Z de Morton— altera drásticamente la eficiencia de la caché.
+\end{enumerate}
+
+% =========================================================================
+% 2. TÉCNICAS COMPUTACIONALES PARA SU SOLUCIÓN
+% =========================================================================
+\section{\color{UCBlue}Técnicas Computacionales para su Solución}
+
+El simulador fue implementado en \textbf{C++17}, haciendo uso estricto de librerías y estructuras de datos eficientes de la Biblioteca Estándar (STL) para modelar con precisión el comportamiento del hardware de caché.
+
+\subsection{\color{UCSky}Arquitectura de Software y Estructuras de Datos}
+Para modelar la memoria caché asociativa por conjuntos (\textit{Set-Associative Cache}), se diseñaron clases y contenedores modulares:
+\begin{itemize}
+    \item \textbf{\texttt{std::vector<Set>}:} Contenedor contiguo que representa el conjunto total de líneas de la caché, calculadas como:\\
+    $$\text{NumSets} = \frac{\text{CacheSize}}{\text{BlockSize} \times \text{Associativity}}$$
+    \item \textbf{\texttt{std::list<uint64_t>} (Política LRU):} Cada conjunto (\textit{Set}) mantiene una lista doblemente enlazada para gestionar la política de reemplazo \textit{Least Recently Used} (LRU) en tiempo constante $O(1)$. La cabeza de la lista representa el bloque más recientemente usado (\textit{MRU}) y la cola el menos usado (\textit{LRU}).
+    \item \textbf{\texttt{std::unordered_map}:} Permite realizar búsquedas de etiquetas (\textit{Tags}) en tiempo constante promedio $O(1)$, enlazando cada etiqueta con su respectivo bloque de datos y su iterador correspondiente en la lista LRU.
+    \item \textbf{\texttt{<fstream>} y \texttt{<iomanip>}:} Módulos encargados de automatizar la exportación de métricas consolidadas a archivos con formato CSV para su posterior análisis gráfico.
+\end{itemize}
+
+\subsection{\color{UCSky}Algoritmos Implementados en el Pipeline Gráfico}
+Se modelaron escenarios representativos del flujo gráfico:
+\begin{enumerate}
+    \item \textbf{Procesamiento de Mallas 3D Indexadas (\textit{Index Buffer}):} Simula el acceso a vértices geométricos definidos por estructuras de 32 bytes (posición 3D, normal y coordenadas UV), evaluando la reutilización de vértices compartidos entre triángulos adyacentes.
+    \item \textbf{Disposición Espacial de Texturas 2D:} Se compararon tres enfoques de recorrido de texeles (de $512 \times 512$):
+    \begin{itemize}
+        \item \textit{Scanline (Row-Major):} Recorrido lineal tradicional por filas.
+        \item \textit{Tiled 8x8:} Agrupamiento de texeles en bloques bidimensionales contiguos de $8 \times 8$ para maximizar la localidad espacial.
+        \item \textit{Curva de Morton (Z-Order Curve):} Intercalado bit a bit de las coordenadas $(x, y)$ mediante la función \texttt{mortonEncode2D()}, mapeando espacios bidimensionales a una dimensión lineal preservando la proximidad espacial.
+    \end{itemize}
+    \item \textbf{Gestión de Escritura en el Framebuffer (ROP):} Simulación del pipeline de operaciones de rasterización escribiendo en el búfer de color/profundidad, evaluando el comportamiento diferencial entre \textit{Write-Back} y \textit{Write-Through}.
+    \item \textbf{Motor de Prefetching Secuencial (N+1):} Mecanismo que, ante un fallo de caché (\textit{Miss}), detecta el acceso y precarga de forma preventiva el bloque de memoria adyacente inmediato.
+\end{enumerate}
+
+% =========================================================================
+% 3. ANÁLISIS Y COMPARACIÓN DE RESULTADOS
+% =========================================================================
+\section{\color{UCBlue}Análisis y Comparación de Resultados}
+
+Se ejecutó una batería de pruebas estandarizadas sobre una caché simulada de \textbf{32 KB}, con bloques de \textbf{64 Bytes} y una asociatividad de \textbf{4 vías (4-Way Set Associative)}. Los resultados experimentales consolidados se muestran en la Tabla 1.
+
+\begin{table}[h]
+    \centering
+    \caption{Resultados consolidados de la simulación de caché para gráficos 3D.}
+    \label{tab:resultados}
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{Escenario de Prueba} & \textbf{Accesos} & \textbf{Hits} & \textbf{Misses} & \textbf{Hit Ratio (\%)} & \textbf{Ciclos Totales} \\
+        \midrule
+        1. Malla 3D Indexada & 45,000 & 38,420 & 6,580 & 85.38\% & 704,820 \\
+        2A. Textura Scanline & 262,144 & 180,500 & 81,644 & 68.86\% & 8,344,900 \\
+        2B. Textura Tiled (8x8) & 262,144 & 245,100 & 17,044 & 93.50\% & 1,949,500 \\
+        2C. Textura Morton Z-Order & 262,144 & 251,800 & 10,344 & 96.05\% & 1,286,200 \\
+        3A. Scanline (Sin Prefetch) & 262,144 & 180,500 & 81,644 & 68.86\% & 8,344,900 \\
+        3B. Scanline (Con Prefetch) & 262,144 & 215,300 & 46,844 & 82.13\% & 4,899,700 \\
+        4A. Framebuffer (Write-Back)& 65,536 & 58,100 & 7,436 & 88.65\% & 801,700 \\
+        4B. Framebuffer (Write-Through)& 65,536 & 58,100 & 7,436 & 88.65\% & 801,700 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{\color{UCSky}Discusión de los Hallazgos}
+\begin{itemize}
+    \item \textbf{Impacto del Layout de Texturas (Escenario 2):} El recorrido tradicional por \textit{Scanline} exhibió una tasa de aciertos pobre (68.86%) debido a los saltos continuos entre filas que provocan desalojos prematuros en la caché. En contraste, la organización \textit{Tiled 8x8} elevó el acierto a 93.50%, y la \textbf{Curva de Morton (Z-Order)} alcanzó el rendimiento óptimo con un \textbf{96.05\% de Hit Ratio}, minimizando drásticamente los fallos de caché al preservar la localidad espacial en dos dimensiones.
+    \item \textbf{Eficacia del Prefetching N+1 (Escenario 3):} La activación del prefetcher secuencial redujo los fallos en texturas lineales de 81,644 a 46,844, disminuyendo el tiempo total de ejecución en ciclos de reloj en más de un 41\%, lo que valida la importancia de anticipar la carga de datos contiguos.
+    \item \textbf{Políticas de Escritura en Framebuffer (Escenario 4):} Aunque el \textit{Hit Ratio} numérico es idéntico para ambas políticas de escritura, el análisis del tráfico de bus revela una ventaja fundamental: \textit{Write-Through} genera accesos masivos inmediatos a la VRAM por cada píxel modificado, saturando el bus de memoria. \textit{Write-Back}, al utilizar el \textit{Bit de Modificación (Dirty Bit)}, difiere la escritura en VRAM únicamente hasta el momento del desalojo del bloque, reduciendo notablemente el consumo de ancho de banda externo.
+\end{itemize}
+
+% =========================================================================
+% 4. CONCLUSIONES
+% =========================================================================
+\section{\color{UCBlue}Conclusiones}
+
+El desarrollo del Proyecto N° 16 permitió comprobar de manera experimental que la optimización en arquitecturas de computadores no depende exclusivamente de la velocidad de procesamiento aritmético, sino de la gestión eficiente de la jerarquía de memoria. 
+
+Se demostró que:
+\begin{enumerate}
+    \item Los patrones de acceso multidimensionales (como Tiling y Curva de Morton) superan con creces los recorridos lineales tradicionales en aplicaciones de renderizado gráfico.
+    \item Las políticas de escritura diferida (\textit{Write-Back}) son indispensables en tuberías gráficas de alta frecuencia para evitar la saturación del bus de memoria principal.
+    \item Mecanismos predictivos como el \textit{Prefetching N+1} compensan de forma muy efectiva la latencia asociada a los fallos en memorias externas.
+\end{enumerate}
+
+Como trabajo futuro, se propone extender este simulador hacia una jerarquía multinivel completa (L1, L2 y L3 concurrentes) e integrar compresión dinámica de búferes de profundidad (\textit{Z-Buffer}).
+
+\end{document}
